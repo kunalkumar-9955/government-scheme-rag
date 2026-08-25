@@ -67,3 +67,11 @@ CMD ["gunicorn", \
      "--log-level", "info", \
      "--access-logfile", "-", \
      "--error-logfile", "-"]
+
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+RUN python --version && pip --version && python -c "import platform; print(platform.platform()); print(platform.machine())"
