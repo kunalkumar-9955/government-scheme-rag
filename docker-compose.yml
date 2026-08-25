@@ -1,0 +1,242 @@
+# ============================================================
+# Government Scheme AI Assistant — Docker Compose
+# Services: postgres, redis, backend, celery, celery-beat,
+#           flower, minio, nginx, frontend
+# ============================================================
+
+version: "3.9"
+
+networks:
+  govscheme-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  media_data:
+  static_data:
+
+services:
+
+  # ──────────────────────────────────────────
+  # PostgreSQL 16 + pgvector extension
+  # ──────────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: govscheme_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-govscheme_db}
+      POSTGRES_USER: ${POSTGRES_USER:-govscheme_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-govscheme_password_change_me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - govscheme-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-govscheme_user} -d ${POSTGRES_DB:-govscheme_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────────────────────
+  # Redis 7 — Cache + Message Broker
+  # ──────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: govscheme_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - govscheme-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────────────────────
+  # MinIO — Object Storage (local S3)
+  # ──────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: govscheme_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - govscheme-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ──────────────────────────────────────────
+  # Django API Backend
+  # ──────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: govscheme_backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - govscheme-net
+    command: >
+      sh -c "
+        python manage.py wait_for_db &&
+        python manage.py migrate --noinput &&
+        python manage.py collectstatic --noinput &&
+        gunicorn config.wsgi:application
+          --bind 0.0.0.0:8000
+          --workers 4
+          --timeout 120
+          --log-level info
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/schema/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ──────────────────────────────────────────
+  # Celery Worker
+  # ──────────────────────────────────────────
+  celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: govscheme_celery
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+      - media_data:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - govscheme-net
+    command: >
+      celery -A celery_app worker
+        --loglevel=info
+        --queues=documents,rag,evaluation,email,maintenance
+        --concurrency=4
+        --max-tasks-per-child=100
+
+  # ──────────────────────────────────────────
+  # Celery Beat (Scheduler)
+  # ──────────────────────────────────────────
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: govscheme_celery_beat
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - govscheme-net
+    command: >
+      celery -A celery_app beat
+        --loglevel=info
+        --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
+  # ──────────────────────────────────────────
+  # Flower — Celery Task Monitor
+  # ──────────────────────────────────────────
+  flower:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: govscheme_flower
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+    networks:
+      - govscheme-net
+    command: >
+      celery -A celery_app flower
+        --port=5555
+        --basic_auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-flowerpass}
+
+  # ──────────────────────────────────────────
+  # Next.js Frontend
+  # ──────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: govscheme_frontend
+    restart: unless-stopped
+    env_file:
+      - ./frontend/.env.local
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - govscheme-net
+
+  # ──────────────────────────────────────────
+  # Nginx — Reverse Proxy + Rate Limiter
+  # ──────────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: govscheme_nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - static_data:/app/staticfiles:ro
+      - media_data:/app/media:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - govscheme-net

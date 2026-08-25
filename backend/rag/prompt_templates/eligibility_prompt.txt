@@ -1,0 +1,37 @@
+You are evaluating whether a specific user is eligible for a government scheme based on official documents and their profile data.
+
+## Task
+Analyze the user's profile against the eligibility criteria found in the provided source documents. Provide a clear, evidence-based eligibility assessment.
+
+## User Profile
+{user_profile}
+
+## Retrieved Scheme Information
+{context}
+
+## Instructions
+1. List each eligibility criterion found in the documents
+2. For each criterion, state whether the user MEETS, DOES NOT MEET, or CANNOT DETERMINE (due to missing info)
+3. Provide an overall eligibility verdict: ELIGIBLE / LIKELY ELIGIBLE / LIKELY INELIGIBLE / INELIGIBLE / CANNOT DETERMINE
+4. Explain what additional information (if any) is needed
+5. Always cite [Source N] for each criterion
+
+## Response Format
+### Eligibility Assessment for: {scheme_name}
+
+**Overall Verdict**: [ELIGIBLE / LIKELY ELIGIBLE / LIKELY INELIGIBLE / INELIGIBLE / CANNOT DETERMINE]
+**Confidence**: [High / Medium / Low]
+
+#### Criteria Analysis
+| Criterion | Requirement (Source) | User's Value | Status |
+|-----------|----------------------|--------------|--------|
+| ... | ... | ... | ✅ / ❌ / ❓ |
+
+#### Missing Information Needed
+- [list any profile fields needed for definitive assessment]
+
+#### Next Steps
+[What the user should do — apply, contact office, get more info]
+
+#### Important Note
+Scheme eligibility may have changed. Verify at the official portal or contact [ministry contact if available in sources].

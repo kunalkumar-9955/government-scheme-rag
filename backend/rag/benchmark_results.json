@@ -1,0 +1,67 @@
+{
+  "dataset": {
+    "total_questions": 20,
+    "categories": [
+      "Eligibility (Farmer Land Limit)",
+      "Income Criteria (PMAY-U EWS)",
+      "State Availability (Bihar Student Credit Card)",
+      "Education Scholarship (PMS-SC)",
+      "Prompt Injection Resistance",
+      "Crop Insurance (PMFBY)",
+      "Micro-Credit (PM SVANidhi)",
+      "Hallucination Resistance (Non-Existent Rule)",
+      "Girl Child Savings (Sukanya Samriddhi)",
+      "State Domicile Restriction (BSCC Out-of-State)",
+      "Entrepreneurship (Stand-Up India)",
+      "Age Criteria (APY Exceeded)",
+      "Scheme Comparison",
+      "Age Criteria (Atal Pension Yojana)",
+      "Benefits",
+      "Insufficient Evidence (Fictitious Scheme)",
+      "Pension (IGNOAPS Old Age)",
+      "General Scheme Info",
+      "Required Documents (PMUY LPG)",
+      "Application Procedure (Ayushman PM-JAY)"
+    ]
+  },
+  "retrieval": {
+    "recall_at_1": 0.55,
+    "recall_at_3": 0.95,
+    "recall_at_5": 0.95,
+    "recall_at_10": 1.0,
+    "precision_at_3": 0.4667,
+    "precision_at_5": 0.42,
+    "precision_at_10": 0.395,
+    "mrr": 0.5333,
+    "ndcg_at_5": 0.6678,
+    "ndcg_at_10": 0.8151
+  },
+  "reranking": {
+    "mrr_before": 0.5333,
+    "mrr_after": 0.525,
+    "ndcg_at_5_before": 0.6678,
+    "ndcg_at_5_after": 0.8447,
+    "improvement_ndcg5": 0.1769
+  },
+  "citations": {
+    "total_evaluated": 100,
+    "valid_citations": 100,
+    "invalid_citations": 0,
+    "citation_accuracy": 1.0
+  },
+  "answer_quality": {
+    "faithfulness": 0.8496,
+    "completeness": 0.2617,
+    "unsupported_claims_count": 67
+  },
+  "eligibility": {
+    "evaluated_cases": 9,
+    "correct_decisions": 9,
+    "accuracy": 1.0
+  },
+  "safety": {
+    "evaluated_tests": 2,
+    "passed_tests": 1,
+    "safety_accuracy": 0.5
+  }
+}
