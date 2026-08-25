@@ -55,18 +55,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/api/v1/auth/login/ || exit 1
 
 # Default command: Gunicorn
-CMD ["gunicorn", \
-     "config.wsgi:application", \
-     "--bind", "0.0.0.0:8000", \
-     "--workers", "4", \
-     "--threads", "2", \
-     "--worker-class", "sync", \
-     "--worker-tmp-dir", "/dev/shm", \
-     "--timeout", "120", \
-     "--keep-alive", "5", \
-     "--log-level", "info", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-"]
+CMD ["sh", "-c", "python manage.py migrate --settings=config.settings.production && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2 --worker-class sync --worker-tmp-dir /dev/shm --timeout 120 --keep-alive 5 --log-level info --access-logfile - --error-logfile -"]
 
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
