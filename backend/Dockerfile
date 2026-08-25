@@ -63,7 +63,7 @@ CMD ["gunicorn", \
      "--worker-class", "sync", \
      "--worker-tmp-dir", "/dev/shm", \
      "--timeout", "120", \
-     "--keepalive", "5", \
+     "--keep-alive", "5", \
      "--log-level", "info", \
      "--access-logfile", "-", \
      "--error-logfile", "-"]
