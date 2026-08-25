@@ -59,7 +59,7 @@ torch==2.5.1
 accelerate==1.2.1
 
 # Reranker (local BGE)
-FlagEmbedding==1.3.3
+FlagEmbedding==1.3.4
 
 # ============================================================
 # Document Processing
