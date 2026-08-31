@@ -49,11 +49,7 @@ CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=False, cast=bool)
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
 
-# ─────────────────────────────────────────────
-# Database Connection Pooling (Production)
-# ─────────────────────────────────────────────
-DATABASES["default"]["CONN_MAX_AGE"] = config("DB_CONN_MAX_AGE", default=600, cast=int)
-DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
+
 
 # ─────────────────────────────────────────────
 # Storage & Media (MinIO / AWS S3)

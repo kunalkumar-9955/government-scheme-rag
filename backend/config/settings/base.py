@@ -106,21 +106,33 @@ ASGI_APPLICATION = "config.asgi.application"
 # ─────────────────────────────────────────────
 # Database — PostgreSQL + pgvector
 # ─────────────────────────────────────────────
-DATABASES = {
-    "default": {
-        # Django 5.x auto-detects psycopg v3 when psycopg (not psycopg2) is installed
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": config("POSTGRES_DB", default="govscheme_db"),
-        "USER": config("POSTGRES_USER", default="govscheme_user"),
-        "PASSWORD": config("POSTGRES_PASSWORD", default="govscheme_pass"),
-        "HOST": config("POSTGRES_HOST", default="localhost"),
-        "PORT": config("POSTGRES_PORT", default="5432"),
-        "OPTIONS": {
-            "connect_timeout": 10,
-        },
-        "CONN_MAX_AGE": 60,
+DATABASE_URL = config("DATABASE_URL", default="")
+
+if DATABASE_URL:
+    import dj_database_url
+
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": config("POSTGRES_DB", default="govscheme_db"),
+            "USER": config("POSTGRES_USER", default="govscheme_user"),
+            "PASSWORD": config("POSTGRES_PASSWORD", default="govscheme_pass"),
+            "HOST": config("POSTGRES_HOST", default="localhost"),
+            "PORT": config("POSTGRES_PORT", default="5432"),
+            "OPTIONS": {
+                "connect_timeout": 10,
+            },
+            "CONN_MAX_AGE": 60,
+        }
+    }
 
 # ─────────────────────────────────────────────
 # Custom User Model
