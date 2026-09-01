@@ -24,8 +24,20 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
+
+  const fillAndSubmit = async (emailVal: string, passVal: string) => {
+    setValue("email", emailVal, { shouldValidate: true });
+    setValue("password", passVal, { shouldValidate: true });
+    try {
+      await login(emailVal, passVal);
+      router.push("/dashboard/chat");
+    } catch {
+      // Handled in store
+    }
+  };
 
   useEffect(() => {
     if (isAuthenticated) router.replace("/dashboard/chat");
@@ -72,10 +84,10 @@ export default function LoginPage() {
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        style={{ width: "100%", maxWidth: "440px", position: "relative" }}
+        style={{ width: "100%", maxWidth: "460px", position: "relative" }}
       >
         {/* Logo */}
-        <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+        <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
           <Link href="/" style={{ textDecoration: "none" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.75rem" }}>
               <span style={{ fontSize: "2rem" }}>🏛️</span>
@@ -93,16 +105,87 @@ export default function LoginPage() {
               </span>
             </div>
           </Link>
-          <h1 style={{ fontSize: "1.75rem", marginTop: "1.5rem", marginBottom: "0.5rem" }}>
+          <h1 style={{ fontSize: "1.75rem", marginTop: "1.25rem", marginBottom: "0.4rem" }}>
             Welcome back
           </h1>
           <p style={{ color: "var(--color-text-secondary)", fontSize: "0.9rem" }}>
-            Sign in to your account to continue
+            Sign in or use a demo account to explore instantly
           </p>
         </div>
 
         <div className="card-elevated" style={{ borderRadius: "var(--radius-xl)" }}>
-          <form onSubmit={handleSubmit(onSubmit)} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          {/* Quick Demo Access Bar */}
+          <div
+            style={{
+              background: "rgba(99, 102, 241, 0.08)",
+              border: "1px solid rgba(99, 102, 241, 0.25)",
+              borderRadius: "var(--radius-lg)",
+              padding: "0.85rem",
+              marginBottom: "1.25rem",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+              <span style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-primary-light)" }}>
+                ✨ 1-Click Demo Accounts
+              </span>
+              <span style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>Instant Login</span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+              <button
+                type="button"
+                onClick={() => fillAndSubmit("demo@govscheme.ai", "DemoPass123!")}
+                disabled={isLoading}
+                style={{
+                  padding: "0.5rem 0.6rem",
+                  borderRadius: "var(--radius-md)",
+                  background: "rgba(255, 255, 255, 0.05)",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                  color: "var(--color-text-primary)",
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  textAlign: "left",
+                  transition: "all 0.2s",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                  <span>👤</span>
+                  <span>Citizen Demo</span>
+                </div>
+                <div style={{ fontSize: "0.7rem", color: "var(--color-text-muted)", marginTop: "2px" }}>
+                  Farmer Profile (UP)
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => fillAndSubmit("admin@govscheme.ai", "AdminPass123!")}
+                disabled={isLoading}
+                style={{
+                  padding: "0.5rem 0.6rem",
+                  borderRadius: "var(--radius-md)",
+                  background: "rgba(255, 255, 255, 0.05)",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                  color: "var(--color-text-primary)",
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  textAlign: "left",
+                  transition: "all 0.2s",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                  <span>🛡️</span>
+                  <span>Admin Demo</span>
+                </div>
+                <div style={{ fontSize: "0.7rem", color: "var(--color-text-muted)", marginTop: "2px" }}>
+                  Admin Panel & Docs
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit(onSubmit)} style={{ display: "flex", flexDirection: "column", gap: "1.1rem" }}>
             {/* Global error */}
             {error && (
               <div
@@ -125,14 +208,14 @@ export default function LoginPage() {
 
             {/* Email */}
             <div>
-              <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "0.5rem" }}>
+              <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, marginBottom: "0.4rem" }}>
                 Email Address
               </label>
               <input
                 {...register("email")}
                 type="email"
                 className="input-field"
-                placeholder="you@example.com"
+                placeholder="you@example.com or demo@govscheme.ai"
                 autoComplete="email"
               />
               {errors.email && (
@@ -144,7 +227,7 @@ export default function LoginPage() {
 
             {/* Password */}
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
                 <label style={{ fontSize: "0.875rem", fontWeight: 500 }}>Password</label>
                 <Link
                   href="/forgot-password"
@@ -204,7 +287,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p style={{ textAlign: "center", marginTop: "1.5rem", fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>
+          <p style={{ textAlign: "center", marginTop: "1.25rem", fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>
             Don't have an account?{" "}
             <Link href="/register" style={{ color: "var(--color-primary-light)", textDecoration: "none", fontWeight: 500 }}>
               Create one free
