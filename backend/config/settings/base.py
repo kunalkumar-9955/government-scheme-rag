@@ -109,16 +109,31 @@ ASGI_APPLICATION = "config.asgi.application"
 DATABASE_URL = config("DATABASE_URL", default="")
 
 if DATABASE_URL:
-    import dj_database_url
-
-    DATABASES = {
-        "default": dj_database_url.parse(
-            DATABASE_URL,
-            conn_max_age=600,
-            conn_health_checks=True,
-            ssl_require=config("DB_SSL_REQUIRE", default=False, cast=bool),
-        )
-    }
+    try:
+        import dj_database_url
+        DATABASES = {
+            "default": dj_database_url.parse(
+                DATABASE_URL,
+                conn_max_age=600,
+                conn_health_checks=True,
+                ssl_require=config("DB_SSL_REQUIRE", default=False, cast=bool),
+            )
+        }
+    except Exception:
+        import urllib.parse
+        parsed = urllib.parse.urlparse(DATABASE_URL)
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": parsed.path.lstrip("/"),
+                "USER": parsed.username or "",
+                "PASSWORD": parsed.password or "",
+                "HOST": parsed.hostname or "localhost",
+                "PORT": str(parsed.port or 5432),
+                "OPTIONS": {"connect_timeout": 10, "sslmode": "require" if config("DB_SSL_REQUIRE", default=False, cast=bool) else "prefer"},
+                "CONN_MAX_AGE": 600,
+            }
+        }
 else:
     DATABASES = {
         "default": {
