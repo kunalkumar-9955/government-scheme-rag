@@ -116,6 +116,7 @@ if DATABASE_URL:
             DATABASE_URL,
             conn_max_age=600,
             conn_health_checks=True,
+            ssl_require=config("DB_SSL_REQUIRE", default=False, cast=bool),
         )
     }
 else:
@@ -129,6 +130,7 @@ else:
             "PORT": config("POSTGRES_PORT", default="5432"),
             "OPTIONS": {
                 "connect_timeout": 10,
+                "sslmode": config("POSTGRES_SSLMODE", default="prefer"),
             },
             "CONN_MAX_AGE": 60,
         }

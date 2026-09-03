@@ -50,17 +50,5 @@ USER appuser
 
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8000/api/v1/auth/login/ || exit 1
-
-# Default command: Gunicorn
-CMD ["sh", "-c", "python manage.py migrate --settings=config.settings.production && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2 --worker-class sync --worker-tmp-dir /dev/shm --timeout 120 --keep-alive 5 --log-level info --access-logfile - --error-logfile -"]
-
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
-
-RUN python --version && pip --version && python -c "import platform; print(platform.platform()); print(platform.machine())"
+# Default command: Migrate, Seed Demo Accounts, and Start Gunicorn on dynamic PORT
+CMD ["sh", "-c", "python manage.py migrate --settings=config.settings.production && python manage.py seed_users --settings=config.settings.production || true && gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 4 --threads 2 --worker-class sync --worker-tmp-dir /dev/shm --timeout 120 --keep-alive 5 --log-level info --access-logfile - --error-logfile -"]
