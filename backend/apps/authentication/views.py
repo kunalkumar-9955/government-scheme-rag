@@ -33,12 +33,26 @@ logger = logging.getLogger(__name__)
 
 def _get_tokens_for_user(user: CustomUser) -> dict:
     """Generate JWT access + refresh token pair for a user."""
-    refresh = RefreshToken.for_user(user)
+    try:
+        refresh = RefreshToken.for_user(user)
+        access_token_str = str(refresh.access_token)
+        refresh_token_str = str(refresh)
+        expires_in_sec = int(refresh.access_token.lifetime.total_seconds())
+    except Exception as exc:
+        logger.exception("Token generation fallback triggered: %s", exc)
+        refresh = RefreshToken()
+        refresh["user_id"] = str(user.id)
+        refresh["email"] = user.email
+        refresh["role"] = getattr(user, "role", "CITIZEN")
+        access_token_str = str(refresh.access_token)
+        refresh_token_str = str(refresh)
+        expires_in_sec = 3600
+
     return {
-        "access_token": str(refresh.access_token),
-        "refresh_token": str(refresh),
+        "access_token": access_token_str,
+        "refresh_token": refresh_token_str,
         "token_type": "Bearer",
-        "expires_in": int(refresh.access_token.lifetime.total_seconds()),
+        "expires_in": expires_in_sec,
         "user": user,
     }
 

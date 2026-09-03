@@ -55,10 +55,34 @@ def custom_exception_handler(exc, context):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+    # Handle Django Database Errors
+    from django.db import DatabaseError
+    if isinstance(exc, DatabaseError):
+        logger.exception("Database error occurred: %s", exc)
+        return Response(
+            {
+                "success": False,
+                "error": {
+                    "code": "DATABASE_ERROR",
+                    "message": f"Database error: {str(exc)}. Please check database connectivity and migrations.",
+                    "details": {"exception": exc.__class__.__name__, "info": str(exc)},
+                },
+            },
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
     # Unhandled server error
     logger.exception("Unhandled exception: %s", exc)
+    err_str = str(exc) if str(exc) else "An unexpected error occurred."
     return Response(
-        {"success": False, "error": {"code": "INTERNAL_SERVER_ERROR", "message": "An unexpected error occurred."}},
+        {
+            "success": False,
+            "error": {
+                "code": "INTERNAL_SERVER_ERROR",
+                "message": err_str,
+                "details": {"exception": exc.__class__.__name__, "info": str(exc)},
+            },
+        },
         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
 
