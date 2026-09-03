@@ -104,48 +104,88 @@ WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
 # ─────────────────────────────────────────────
-# Database — PostgreSQL + pgvector
+# Database — PostgreSQL + pgvector (with Cloud Auto-Resolution)
 # ─────────────────────────────────────────────
+import socket
+import urllib.parse
+
+def _resolve_cloud_db_host(host: str) -> str:
+    """Auto-resolves Render/Cloud short hostnames to fully qualified domain names."""
+    if not host or host in ("localhost", "127.0.0.1", "postgres", "backend"):
+        return host
+    # If Render short hostname (e.g. dpg-da6oppc9v7es73eih520-a without domain)
+    if host.startswith("dpg-") and "." not in host:
+        try:
+            socket.gethostbyname(host)
+            return host
+        except Exception:
+            for region in ["singapore", "oregon", "frankfurt", "ohio", "virginia"]:
+                candidate = f"{host}.{region}-postgres.render.com"
+                try:
+                    socket.gethostbyname(candidate)
+                    return candidate
+                except Exception:
+                    pass
+    return host
+
 DATABASE_URL = config("DATABASE_URL", default="")
 
 if DATABASE_URL:
     try:
+        # Check if URL contains a short Render hostname and expand it
+        parsed = urllib.parse.urlparse(DATABASE_URL)
+        resolved_host = _resolve_cloud_db_host(parsed.hostname or "")
+        if resolved_host != parsed.hostname:
+            netloc = f"{parsed.username or ''}:{parsed.password or ''}@{resolved_host}:{parsed.port or 5432}"
+            DATABASE_URL = urllib.parse.urlunparse((parsed.scheme, netloc, parsed.path, parsed.params, parsed.query, parsed.fragment))
+    except Exception:
+        pass
+
+    try:
         import dj_database_url
+        is_cloud_db = any(domain in DATABASE_URL for domain in [".render.com", ".supabase.co", ".neon.tech", ".rds.amazonaws.com"])
         DATABASES = {
             "default": dj_database_url.parse(
                 DATABASE_URL,
                 conn_max_age=600,
                 conn_health_checks=True,
-                ssl_require=config("DB_SSL_REQUIRE", default=False, cast=bool),
+                ssl_require=config("DB_SSL_REQUIRE", default=is_cloud_db, cast=bool),
             )
         }
     except Exception:
-        import urllib.parse
         parsed = urllib.parse.urlparse(DATABASE_URL)
+        resolved_host = _resolve_cloud_db_host(parsed.hostname or "localhost")
+        is_cloud_db = any(domain in resolved_host for domain in [".render.com", ".supabase.co", ".neon.tech", ".rds.amazonaws.com"])
+        ssl_mode = "require" if (config("DB_SSL_REQUIRE", default=is_cloud_db, cast=bool) or is_cloud_db) else "prefer"
         DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.postgresql",
                 "NAME": parsed.path.lstrip("/"),
                 "USER": parsed.username or "",
                 "PASSWORD": parsed.password or "",
-                "HOST": parsed.hostname or "localhost",
+                "HOST": resolved_host,
                 "PORT": str(parsed.port or 5432),
-                "OPTIONS": {"connect_timeout": 10, "sslmode": "require" if config("DB_SSL_REQUIRE", default=False, cast=bool) else "prefer"},
+                "OPTIONS": {"connect_timeout": 10, "sslmode": ssl_mode},
                 "CONN_MAX_AGE": 600,
             }
         }
 else:
+    raw_host = config("POSTGRES_HOST", default="localhost")
+    resolved_host = _resolve_cloud_db_host(raw_host)
+    is_cloud_db = any(domain in resolved_host for domain in [".render.com", ".supabase.co", ".neon.tech", ".rds.amazonaws.com"])
+    ssl_mode = "require" if is_cloud_db else config("POSTGRES_SSLMODE", default="prefer")
+
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
             "NAME": config("POSTGRES_DB", default="govscheme_db"),
             "USER": config("POSTGRES_USER", default="govscheme_user"),
             "PASSWORD": config("POSTGRES_PASSWORD", default="govscheme_pass"),
-            "HOST": config("POSTGRES_HOST", default="localhost"),
+            "HOST": resolved_host,
             "PORT": config("POSTGRES_PORT", default="5432"),
             "OPTIONS": {
                 "connect_timeout": 10,
-                "sslmode": config("POSTGRES_SSLMODE", default="prefer"),
+                "sslmode": ssl_mode,
             },
             "CONN_MAX_AGE": 60,
         }
