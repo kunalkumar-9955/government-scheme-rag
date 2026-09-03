@@ -23,13 +23,16 @@ DEBUG = False
 # ─────────────────────────────────────────────
 ALLOWED_HOSTS = config(
     "ALLOWED_HOSTS",
-    default="localhost,127.0.0.1,backend,nginx",
+    default="*",
     cast=Csv(),
 )
 
+CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=True, cast=bool)
+CORS_ALLOW_CREDENTIALS = True
+
 CSRF_TRUSTED_ORIGINS = config(
     "CSRF_TRUSTED_ORIGINS",
-    default="http://localhost:3000,http://127.0.0.1:3000,https://govscheme.nic.in",
+    default="http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,https://*.onrender.com,https://*.vercel.app",
     cast=Csv(),
 )
 

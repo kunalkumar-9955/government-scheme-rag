@@ -37,7 +37,19 @@ export const useAuthStore = create<AuthState>()(
           tokenStorage.set(data.access_token, data.refresh_token);
           set({ user: data.user, isAuthenticated: true, isLoading: false });
         } catch (err: any) {
-          const message = err.response?.data?.error?.message || "Login failed.";
+          const serverMsg =
+            err.response?.data?.error?.message ||
+            err.response?.data?.message ||
+            (err.response?.data?.error?.details
+              ? Object.entries(err.response.data.error.details)
+                  .map(([k, v]) => `${Array.isArray(v) ? v.join(", ") : v}`)
+                  .join(" | ")
+              : null);
+          const networkMsg =
+            err.code === "ERR_NETWORK" || !err.response
+              ? "Cannot connect to server. Please check backend API URL."
+              : null;
+          const message = serverMsg || networkMsg || err.message || "Login failed.";
           set({ error: message, isLoading: false });
           throw err;
         }
@@ -51,7 +63,19 @@ export const useAuthStore = create<AuthState>()(
           tokenStorage.set(data.access_token, data.refresh_token);
           set({ user: data.user, isAuthenticated: true, isLoading: false });
         } catch (err: any) {
-          const message = err.response?.data?.error?.message || "Registration failed.";
+          const serverMsg =
+            err.response?.data?.error?.message ||
+            err.response?.data?.message ||
+            (err.response?.data?.error?.details
+              ? Object.entries(err.response.data.error.details)
+                  .map(([k, v]) => `${Array.isArray(v) ? v.join(", ") : v}`)
+                  .join(" | ")
+              : null);
+          const networkMsg =
+            err.code === "ERR_NETWORK" || !err.response
+              ? "Cannot connect to server. Please check backend API URL."
+              : null;
+          const message = serverMsg || networkMsg || err.message || "Registration failed.";
           set({ error: message, isLoading: false });
           throw err;
         }
