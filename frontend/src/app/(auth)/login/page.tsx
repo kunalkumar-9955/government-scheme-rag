@@ -18,7 +18,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isLoading, error, isAuthenticated, clearError } = useAuthStore();
+  const { login, loginDemo, isLoading, error, isAuthenticated, clearError } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
 
   const {
@@ -27,6 +27,11 @@ export default function LoginPage() {
     setValue,
     formState: { errors },
   } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
+
+  const handleInstantDemo = (role: "CITIZEN" | "ADMIN") => {
+    loginDemo(role);
+    router.push("/dashboard/chat");
+  };
 
   const fillAndSubmit = async (emailVal: string, passVal: string) => {
     setValue("email", emailVal, { shouldValidate: true });
@@ -133,7 +138,7 @@ export default function LoginPage() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
               <button
                 type="button"
-                onClick={() => fillAndSubmit("demo@govscheme.ai", "DemoPass123!")}
+                onClick={() => handleInstantDemo("CITIZEN")}
                 disabled={isLoading}
                 style={{
                   padding: "0.5rem 0.6rem",
@@ -159,7 +164,7 @@ export default function LoginPage() {
 
               <button
                 type="button"
-                onClick={() => fillAndSubmit("admin@govscheme.ai", "AdminPass123!")}
+                onClick={() => handleInstantDemo("ADMIN")}
                 disabled={isLoading}
                 style={{
                   padding: "0.5rem 0.6rem",
